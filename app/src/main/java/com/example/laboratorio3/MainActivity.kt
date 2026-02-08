@@ -1,22 +1,32 @@
 package com.example.laboratorio3
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.laboratorio3.ui.navigation.*
-import com.example.laboratorio3.ui.screens.*
 import com.example.laboratorio3.ui.viewmodel.LabViewModel
-
-
+import com.example.laboratorio3.data.model.Song // ¡Importante para que reconozca 'title', 'artist', etc!
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,11 +63,55 @@ class MainActivity : ComponentActivity() {
                     startDestination = HomeDestination,
                     modifier = Modifier.padding(innerPadding)
                 ) {
+                    // PANTALLA DE INICIO (HOME)
                     composable<HomeDestination> {
-                        // Aquí iría tu HomeScreen existente [cite: 123]
+                        // 1. "Escuchamos" la lista de canciones del ViewModel
+                        val songs by labViewModel.songs.collectAsState()
+
+                        // 2. Dibujamos la lista en pantalla
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(songs) { song ->
+                                ListItem(
+                                    headlineContent = { Text(song.title) },
+                                    supportingContent = { Text(song.artist) },
+                                    trailingContent = {
+                                        // Botón de corazón
+                                        IconButton(onClick = { labViewModel.toggleFavorite(song.id) }) {
+                                            Icon(
+                                                imageVector = if (song.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                                contentDescription = "Favorite",
+                                                tint = if (song.isFavorite) Color.Red else Color.Gray
+                                            )
+                                        }
+                                    }
+                                )
+                                HorizontalDivider() // Línea separadora opcional
+                            }
+                        }
                     }
+
+                    // PANTALLA DE FAVORITOS (HIGHLIGHTS)
                     composable<HighlightsDestination> {
-                        HighlightsScreen(labViewModel)
+                        // Usamos la misma lista, pero filtrada
+                        val songs by labViewModel.songs.collectAsState()
+                        val favorites = songs.filter { it.isFavorite }
+
+                        if (favorites.isEmpty()) {
+                            // Mensaje si no hay favoritos
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("No tienes favoritos aún")
+                            }
+                        } else {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(favorites) { song ->
+                                    ListItem(
+                                        headlineContent = { Text(song.title) },
+                                        supportingContent = { Text(song.artist) },
+                                        leadingContent = { Icon(Icons.Default.Star, contentDescription = null, tint = Color.Yellow) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
